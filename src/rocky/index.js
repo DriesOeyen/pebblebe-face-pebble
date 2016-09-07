@@ -1,7 +1,19 @@
 var rocky = require('rocky');
+var next_event;
 
 rocky.on('minutechange', function(e) {
 	// When the wall time minute changes, redraw the screen
+	rocky.requestDraw();
+});
+
+rocky.on('daychange', function(e) {
+	// On launch and when a new day starts, fetch the next event from Meetup through the phone
+	rocky.postMessage({cmd: 'fetch'});
+});
+
+rocky.on('message', function(e) {
+	// Grab the next event, then redraw the screen
+	next_event = e.data;
 	rocky.requestDraw();
 });
 
@@ -35,6 +47,17 @@ rocky.on('draw', function(e) {
 	drawRect(ctx, color_yellow, w_third, 0, w_third, h);
 	drawRect(ctx, color_red, 2 * w_third, 0, w_third, h);
 	drawRect(ctx, color_white, flag_stroke, flag_stroke, w - 2 * flag_stroke, h - 2 * flag_stroke); // Drawn on top
+	
+	// If applicable, draw next event info (under hands)
+	if (next_event) {
+		var event_name = next_event.name.substr(0, 30) + "…";
+		var event_date = new Date(next_event.time).toLocaleDateString();
+		var event_date_height = ctx.measureText(event_date).height;
+		ctx.fillStyle = color_red;
+		ctx.textAlign = 'center';
+		ctx.fillText(event_name, cx, 2 * flag_stroke, w - 4 * flag_stroke);
+		ctx.fillText(event_date, cx, h - event_date_height - 2 * flag_stroke, w - 4 * flag_stroke);
+	}
 	
 	// Draw hands
 	var d = new Date();
